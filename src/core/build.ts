@@ -93,7 +93,7 @@ export async function buildAgentMarkdown(options: BuildOptions): Promise<void> {
             `content_type: ${quoteYaml(contentType)}`,
             `word_count: ${wordCount}`,
             `estimated_tokens: ${estimatedTokens}`,
-            `generator: ${quoteYaml('agent-md')}`,
+            `generator: ${quoteYaml('agent-web-md')}`,
             `hash: ${quoteYaml(hash)}`,
             '---',
             ''
