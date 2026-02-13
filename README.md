@@ -5,11 +5,19 @@
 It is **not** a runtime proxy or middleware. It runs during CI/deploy and writes files you host directly.
 
 ## Quickstart
-
 ```bash
 npm install --save-dev agent-web-md
 npx agent-md build --sitemap https://example.com/sitemap.xml --out public/agent
 ```
+
+## After package and dependencies installation, add commands to your build - E.g:
+```bash
+"build": "next build && agent-md build --urls urls.txt --out public/agent"
+
+Explicitly specify --renderer static
+"build:agent": "agent-md build --urls urls.txt --out public/agent --renderer static" 
+```
+
 
 Package name on npm: `agent-web-md`  
 CLI command exposed by the package: `agent-md`
