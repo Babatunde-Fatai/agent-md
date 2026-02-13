@@ -19,7 +19,15 @@ export async function buildAgentMarkdown(options: BuildOptions): Promise<void> {
   });
 
   if (entries.length === 0) {
-    throw new Error('No valid URLs found to process.');
+    const inputHint = options.sitemap
+      ? `Sitemap provided: ${options.sitemap}`
+      : options.urls
+        ? `URLs file provided: ${options.urls}`
+        : 'No input source provided.';
+    throw new Error(
+      `No valid URLs found to process. ${inputHint} ` +
+        'Check that your sitemap contains <loc> entries (or your urls.txt has one absolute URL per line).'
+    );
   }
 
   await ensureDir(options.out);

@@ -7,11 +7,13 @@ It is **not** a runtime proxy or middleware. It runs during CI/deploy and writes
 ## Quickstart
 
 ```bash
-npm install
+npm install --save-dev agent-web-md
 npx playwright install chromium
-npm run build
 npx agent-md build --sitemap https://example.com/sitemap.xml --out public/agent
 ```
+
+Package name on npm: `agent-web-md`  
+CLI command exposed by the package: `agent-md`
 
 Generated output is available at paths like:
 
@@ -22,6 +24,9 @@ If your static files are deployed from `public/`, those become:
 
 - `https://website.com/agent/docs/getting-started.md`
 - `https://website.com/agent/index.json`
+
+Agent discovery entrypoint is `https://website.com/agent/index.json`.
+Agents can read that manifest first, then follow each `markdown_path`.
 
 ## CLI
 
@@ -42,6 +47,21 @@ Flags:
 - `--concurrency <n>`: concurrent page workers (default: `3`)
 - `--extra-wait-ms <ms>`: extra wait after `domcontentloaded` before extraction (default: `1000`; playwright only)
 
+Note: for large sites, prefer `--sitemap` (including sitemap index and `.xml.gz` sitemap files). Use `--urls` as a manual fallback.
+
+Before using `--sitemap`, sanity-check the URL:
+
+```bash
+curl -sSI -L https://your-domain.com/sitemap.xml
+curl -sSL https://your-domain.com/sitemap.xml | head -n 40
+```
+
+You should see:
+- HTTP `200`
+- XML containing `<urlset>` or `<sitemapindex>`
+
+If you get HTML/404, that endpoint is not a sitemap for `agent-md`.
+
 ## What it generates
 
 For each source URL, `agent-md` writes:
@@ -49,9 +69,4 @@ For each source URL, `agent-md` writes:
 1. Markdown file with YAML frontmatter
 2. `index.json` manifest for discovery
 
-See `USAGE.md` for full integration recipes and deployment guidance.
-
-## Publishing
-
-- Maintainer release flow: `RELEASING.md`
-- Beginner onboarding: `novice_usge.md`
+Use `/agent/index.json` as the discovery URL you can share publicly for agents.

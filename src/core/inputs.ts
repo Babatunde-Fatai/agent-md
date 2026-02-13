@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { gunzipSync } from 'node:zlib';
 import { XMLParser } from 'fast-xml-parser';
 import type { UrlEntry } from './types.js';
 
@@ -73,7 +74,13 @@ async function loadSitemapRecursive(
     throw new Error(`Failed to fetch sitemap: ${sitemapUrl} (${response.status})`);
   }
 
-  const xml = await response.text();
+  const xml = await readSitemapBody(response, sitemapUrl);
+  if (!looksLikeSitemapXml(xml)) {
+    throw new Error(
+      `Sitemap URL did not return XML sitemap data: ${response.url || sitemapUrl}. ` +
+        'Use a URL that serves <urlset> or <sitemapindex>, or fallback to --urls urls.txt.'
+    );
+  }
   const parsed = parser.parse(xml) as SitemapLike;
 
   if (parsed.urlset?.url) {
@@ -100,6 +107,23 @@ async function loadSitemapRecursive(
   return [];
 }
 
+async function readSitemapBody(response: Response, sitemapUrl: string): Promise<string> {
+  const contentEncoding = response.headers.get('content-encoding')?.toLowerCase() ?? '';
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+  const looksGzipped =
+    sitemapUrl.toLowerCase().endsWith('.gz') ||
+    contentEncoding.includes('gzip') ||
+    contentType.includes('gzip');
+
+  if (!looksGzipped) {
+    return response.text();
+  }
+
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const unzipped = gunzipSync(bytes);
+  return Buffer.from(unzipped).toString('utf8');
+}
+
 function normalizeEntry(entry: UrlEntry, baseUrl?: string): UrlEntry | null {
   try {
     const resolved = baseUrl ? new URL(entry.url, baseUrl) : new URL(entry.url);
@@ -116,6 +140,11 @@ function normalizeEntry(entry: UrlEntry, baseUrl?: string): UrlEntry | null {
 
 function asArray<T>(value: T | T[]): T[] {
   return Array.isArray(value) ? value : [value];
+}
+
+function looksLikeSitemapXml(body: string): boolean {
+  const sample = body.slice(0, 5000).toLowerCase();
+  return sample.includes('<urlset') || sample.includes('<sitemapindex');
 }
 
 interface SitemapLike {
