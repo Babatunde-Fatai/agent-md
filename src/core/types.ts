@@ -10,6 +10,7 @@ export interface BuildOptions {
   timeout: number;
   concurrency: number;
   extraWaitMs?: number;
+  skipRobotsCheck?: boolean;
 }
 
 export interface UrlEntry {

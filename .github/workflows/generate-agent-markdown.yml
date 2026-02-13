@@ -18,6 +18,7 @@ jobs:
       OUTPUT_DIR: public/agent
       COMMIT_BACK: "false"
       EXTRA_WAIT_MS: "1000"
+      USE_PLAYWRIGHT: "false"
 
     steps:
       - name: Checkout
@@ -33,10 +34,11 @@ jobs:
         run: npm ci
 
       - name: Install Playwright Chromium
+        if: env.USE_PLAYWRIGHT == 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Generate markdown files
-        run: npx agent-md build --sitemap "$SITEMAP_URL" --out "$OUTPUT_DIR" --renderer playwright --concurrency 3 --extra-wait-ms "$EXTRA_WAIT_MS"
+        run: npx agent-md build --sitemap "$SITEMAP_URL" --out "$OUTPUT_DIR" --renderer static --concurrency 3 --extra-wait-ms "$EXTRA_WAIT_MS"
 
       - name: Upload generated files as artifact
         uses: actions/upload-artifact@v4

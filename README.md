@@ -8,7 +8,6 @@ It is **not** a runtime proxy or middleware. It runs during CI/deploy and writes
 
 ```bash
 npm install --save-dev agent-web-md
-npx playwright install chromium
 npx agent-md build --sitemap https://example.com/sitemap.xml --out public/agent
 ```
 
@@ -42,10 +41,18 @@ Flags:
 - `--out <dir>`: output directory (default: `public/agent`)
 - `--base-url <url>`: optional base URL for relative link/image rewriting
 - `--max-pages <n>`: optional page cap for testing
-- `--renderer static|playwright`: renderer mode (default: `playwright`)
+- `--renderer static|playwright`: renderer mode (default: `static`)
 - `--timeout <ms>`: request/page timeout
 - `--concurrency <n>`: concurrent page workers (default: `3`)
 - `--extra-wait-ms <ms>`: extra wait after `domcontentloaded` before extraction (default: `1000`; playwright only)
+- `--skip-robots-check`: skip robots.txt enforcement for URL crawling
+
+## Choosing a renderer
+
+| Renderer | When to use |
+|---|---|
+| `static` (default) | Server-rendered, pre-rendered, or static HTML sites. Fast, no browser required. |
+| `playwright` | JS-heavy SPAs or pages that hydrate content client-side. Requires: `npx playwright install chromium` |
 
 Note: for large sites, prefer `--sitemap` (including sitemap index and `.xml.gz` sitemap files). Use `--urls` as a manual fallback.
 
@@ -70,3 +77,7 @@ For each source URL, `agent-md` writes:
 2. `index.json` manifest for discovery
 
 Use `/agent/index.json` as the discovery URL you can share publicly for agents.
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for release history.

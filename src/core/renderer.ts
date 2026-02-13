@@ -42,9 +42,16 @@ function createStaticRenderer(timeout: number): Renderer {
 
 function createPlaywrightRenderer(timeout: number, extraWaitMs: number): Renderer {
   let browserPromise: Promise<Browser> | null = null;
+  let installReminderShown = false;
 
   async function getBrowser(): Promise<Browser> {
     if (!browserPromise) {
+      if (!installReminderShown) {
+        console.log(
+          'agent-md: using playwright renderer -- ensure chromium is installed: npx playwright install chromium'
+        );
+        installReminderShown = true;
+      }
       browserPromise = chromium.launch({ headless: true });
     }
     return browserPromise;

@@ -7,6 +7,7 @@ import { ensureDir, fileIsNewerThan, readFrontmatterTitle, writeTextFile } from 
 import { loadUrlsFromSources } from './inputs.js';
 import { derivePublicMountPath, mapUrlToRelativeMarkdownPath } from './pathing.js';
 import { createRenderer } from './renderer.js';
+import { isAllowedByRobots } from './robots.js';
 import type { BuildOptions, ManifestEntry } from './types.js';
 
 export async function buildAgentMarkdown(options: BuildOptions): Promise<void> {
@@ -45,7 +46,7 @@ export async function buildAgentMarkdown(options: BuildOptions): Promise<void> {
   try {
     const processed = await Promise.all(
       entries.map((entry) =>
-        limit(async (): Promise<ManifestEntry> => {
+        limit(async (): Promise<ManifestEntry | null> => {
           const relativeMdPath = mapUrlToRelativeMarkdownPath(entry.url);
           const outputPath = path.join(options.out, relativeMdPath);
           const markdownPath = toPosixPath(path.posix.join(mountPath, relativeMdPath));
@@ -58,6 +59,14 @@ export async function buildAgentMarkdown(options: BuildOptions): Promise<void> {
               title: existingTitle ?? fallbackTitleFromUrl(entry.url),
               retrieved_at: now
             };
+          }
+
+          if (options.skipRobotsCheck !== true) {
+            const isAllowed = await isAllowedByRobots(entry.url, options.timeout);
+            if (!isAllowed) {
+              console.log(`agent-md: skipping ${entry.url} (disallowed by robots.txt)`);
+              return null;
+            }
           }
 
           const rendered = await renderer.render(entry.url);
@@ -103,7 +112,9 @@ export async function buildAgentMarkdown(options: BuildOptions): Promise<void> {
     );
 
     const manifestPath = path.join(options.out, 'index.json');
-    const manifest = processed.sort((a, b) => a.url.localeCompare(b.url));
+    const manifest = processed
+      .filter((entry): entry is ManifestEntry => entry !== null)
+      .sort((a, b) => a.url.localeCompare(b.url));
     await writeTextFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
     console.log(`agent-md: generated ${manifest.length} markdown documents in ${options.out}`);
@@ -122,7 +133,7 @@ function fallbackTitleFromUrl(rawUrl: string): string {
   return (lastPart ?? url.hostname).replace(/[-_]/g, ' ');
 }
 
-function inferContentType(rawUrl: string): string {
+export function inferContentType(rawUrl: string): string {
   const url = new URL(rawUrl);
   const first = url.pathname.split('/').filter(Boolean)[0]?.toLowerCase();
   if (!first) {
@@ -131,7 +142,7 @@ function inferContentType(rawUrl: string): string {
   if (['docs', 'documentation', 'guide', 'guides'].includes(first)) {
     return 'docs';
   }
-  if (['blog', 'news', 'updates'].includes(first)) {
+  if (['blog', 'news', 'updates', 'posts'].includes(first)) {
     return 'article';
   }
   if (['api', 'reference'].includes(first)) {

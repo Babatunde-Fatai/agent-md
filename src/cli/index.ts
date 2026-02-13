@@ -18,7 +18,7 @@ program
   .option('--out <dir>', 'Output directory', 'public/agent')
   .option('--base-url <url>', 'Base URL used to resolve relative links')
   .option('--max-pages <n>', 'Maximum pages to process', parsePositiveInt)
-  .option('--renderer <type>', 'Renderer: static or playwright', 'playwright')
+  .option('--renderer <type>', 'Renderer: static or playwright', 'static')
   .option('--timeout <ms>', 'Timeout in milliseconds', parsePositiveInt, 30000)
   .option('--concurrency <n>', 'Concurrent page workers', parsePositiveInt, 3)
   .option(
@@ -26,6 +26,11 @@ program
     'Extra wait after domcontentloaded before extraction (playwright only)',
     parseNonNegativeInt,
     1000
+  )
+  .option(
+    '--skip-robots-check',
+    'Skip robots.txt enforcement and crawl all URLs regardless',
+    false
   )
   .action(async (rawOptions) => {
     const options = rawOptions as BuildOptions;

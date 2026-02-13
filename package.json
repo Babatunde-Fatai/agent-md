@@ -1,6 +1,6 @@
 {
   "name": "agent-web-md",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Build-time markdown generator for agent-friendly static site content",
   "type": "module",
   "main": "dist/index.js",
