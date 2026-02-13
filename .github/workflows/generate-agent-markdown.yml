@@ -1,0 +1,52 @@
+name: Generate Agent Markdown
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    env:
+      # Update these for your site.
+      SITEMAP_URL: https://example.com/sitemap.xml
+      OUTPUT_DIR: public/agent
+      COMMIT_BACK: "false"
+      EXTRA_WAIT_MS: "1000"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate markdown files
+        run: npx agent-md build --sitemap "$SITEMAP_URL" --out "$OUTPUT_DIR" --renderer playwright --concurrency 3 --extra-wait-ms "$EXTRA_WAIT_MS"
+
+      - name: Upload generated files as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-markdown
+          path: ${{ env.OUTPUT_DIR }}
+
+      - name: Commit generated files
+        if: env.COMMIT_BACK == 'true'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(agent-md): regenerate static agent markdown"
+          file_pattern: ${{ env.OUTPUT_DIR }}/**

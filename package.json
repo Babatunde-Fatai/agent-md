@@ -1,0 +1,59 @@
+{
+  "name": "agent-md",
+  "version": "0.1.0",
+  "description": "Build-time markdown generator for agent-friendly static site content",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "agent-md": "dist/cli/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "dev": "tsx src/cli/index.ts",
+    "prepublishOnly": "npm run clean && npm run typecheck && npm test && npm run build",
+    "release:check": "npm run prepublishOnly && npm pack --dry-run",
+    "release:tag:patch": "npm version patch",
+    "release:tag:minor": "npm version minor",
+    "release:tag:major": "npm version major",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": [
+    "markdown",
+    "agents",
+    "playwright",
+    "sitemap",
+    "static-site"
+  ],
+  "author": "",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "commander": "^14.0.0",
+    "fast-xml-parser": "^5.2.5",
+    "jsdom": "^26.0.0",
+    "p-limit": "^6.2.0",
+    "playwright": "^1.51.0",
+    "turndown": "^7.2.0",
+    "turndown-plugin-gfm": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^27.0.0",
+    "@types/node": "^22.13.10",
+    "@types/turndown": "^5.0.5",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.8"
+  }
+}
