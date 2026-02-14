@@ -35,7 +35,8 @@ export interface ConvertedContent {
 
 export interface ManifestEntry {
   url: string;
-  markdown_path: string;
-  title: string;
   retrieved_at: string;
+  markdown_path?: string;
+  title?: string;
+  auth_required?: true;
 }

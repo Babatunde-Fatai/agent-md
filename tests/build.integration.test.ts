@@ -136,4 +136,56 @@ describe('buildAgentMarkdown integration', () => {
     expect(secondMtime).toBe(firstMtime);
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
+
+  test('includes auth-required pages in manifest without markdown output', async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), 'agent-md-test-'));
+    const outDir = path.join(tmp, 'public', 'agent');
+
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset>\n  <url><loc>https://example.com/dashboard</loc></url>\n</urlset>`;
+
+    globalThis.fetch = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url === 'https://example.com/sitemap.xml') {
+        return new Response(sitemap, { status: 200 });
+      }
+      if (url === 'https://example.com/robots.txt') {
+        return new Response('User-agent: *\nDisallow:', { status: 200 });
+      }
+      if (url === 'https://example.com/dashboard') {
+        return new Response(
+          '<html><body><main><h1>Sign in</h1><p>Forgot your password?</p><p>Create an account</p></main></body></html>',
+          {
+            status: 200,
+            headers: { 'content-type': 'text/html' }
+          }
+        );
+      }
+      return new Response('not found', { status: 404 });
+    }) as typeof fetch;
+
+    await buildAgentMarkdown({
+      sitemap: 'https://example.com/sitemap.xml',
+      out: outDir,
+      renderer: 'static',
+      timeout: 10_000,
+      concurrency: 1,
+      extraWaitMs: 1000
+    });
+
+    const manifest = JSON.parse(await readFile(path.join(outDir, 'index.json'), 'utf8')) as Array<{
+      url: string;
+      auth_required?: true;
+      retrieved_at: string;
+      markdown_path?: string;
+      title?: string;
+    }>;
+
+    expect(manifest).toEqual([
+      {
+        url: 'https://example.com/dashboard',
+        auth_required: true,
+        retrieved_at: FIXED_NOW.toISOString()
+      }
+    ]);
+  });
 });
