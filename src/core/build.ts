@@ -4,6 +4,7 @@ import pLimit from 'p-limit';
 import { convertHtmlToMarkdown } from '../convert/markdown.js';
 import { extractReadableContent } from '../extract/readability.js';
 import { ensureDir, fileIsNewerThan, readFrontmatterTitle, writeTextFile } from './fs.js';
+import { looksLikeAuthRedirect, looksLikeLoginWall } from './authDetection.js';
 import { loadUrlsFromSources } from './inputs.js';
 import { derivePublicMountPath, mapUrlToRelativeMarkdownPath } from './pathing.js';
 import { createRenderer } from './renderer.js';
@@ -70,6 +71,17 @@ export async function buildAgentMarkdown(options: BuildOptions): Promise<void> {
           }
 
           const rendered = await renderer.render(entry.url);
+          if (looksLikeAuthRedirect(entry.url, rendered.finalUrl)) {
+            console.log(
+              `agent-md: skipping ${entry.url} (redirected to login: ${rendered.finalUrl})`
+            );
+            return {
+              url: entry.url,
+              retrieved_at: now,
+              auth_required: true
+            };
+          }
+
           const extracted = extractReadableContent({
             html: rendered.html,
             pageUrl: rendered.finalUrl,
@@ -77,6 +89,15 @@ export async function buildAgentMarkdown(options: BuildOptions): Promise<void> {
           });
 
           const markdownBody = convertHtmlToMarkdown(extracted.html);
+          if (looksLikeLoginWall(markdownBody)) {
+            console.log(`agent-md: skipping ${entry.url} (login wall detected in content)`);
+            return {
+              url: entry.url,
+              retrieved_at: now,
+              auth_required: true
+            };
+          }
+
           const title = extracted.title || rendered.title || fallbackTitleFromUrl(entry.url);
           const description = extracted.description || '';
           const wordCount = countWords(extracted.textContent || markdownBody);
@@ -117,7 +138,11 @@ export async function buildAgentMarkdown(options: BuildOptions): Promise<void> {
       .sort((a, b) => a.url.localeCompare(b.url));
     await writeTextFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
-    console.log(`agent-md: generated ${manifest.length} markdown documents in ${options.out}`);
+    const generatedCount = manifest.filter((entry) => entry.auth_required !== true).length;
+    const skippedAuthCount = manifest.filter((entry) => entry.auth_required === true).length;
+    console.log(
+      `agent-md: generated ${generatedCount} markdown documents, ${skippedAuthCount} skipped (auth required) in ${options.out}`
+    );
   } finally {
     await renderer.close();
   }
